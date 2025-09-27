@@ -22,12 +22,42 @@ const PersonalizationPage = () => {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [aiDataRetention, setAiDataRetention] = useState(false);
   const [editIntroduction, setEditIntroduction] = useState(false);
+  const [detectedPreference, setDetectedPreference] = useState<'visual' | 'text' | 'balanced'>('balanced');
 
   // Loading states for buttons
   const [loadingIntroduction, setLoadingIntroduction] = useState(false);
   const [loadingLocation, setLoadingLocation] = useState(false);
 
   const [loadingAll, setLoadingAll] = useState(false);
+
+  // Parse preference from introduction text
+  const parsePreference = (text: string): 'visual' | 'text' | 'balanced' => {
+    const lowerText = text.toLowerCase();
+    
+    // Check for visual keywords
+    const visualKeywords = ['visual', 'chart', 'graph', 'picture', 'image', 'diagram', 'plot', 'see', 'show me'];
+    const hasVisualKeywords = visualKeywords.some(keyword => lowerText.includes(keyword));
+    
+    // Check for text keywords
+    const textKeywords = ['text', 'detail', 'explain', 'describe', 'analysis', 'summary', 'write', 'tell me'];
+    const hasTextKeywords = textKeywords.some(keyword => lowerText.includes(keyword));
+    
+    // Determine preference based on keywords
+    if (hasVisualKeywords && !hasTextKeywords) {
+      return 'visual';
+    } else if (hasTextKeywords && !hasVisualKeywords) {
+      return 'text';
+    } else {
+      return 'balanced';
+    }
+  };
+
+  // Handle introduction text change with real-time preference detection
+  const handleIntroductionChange = (value: string) => {
+    setIntroduction(value);
+    const preference = parsePreference(value);
+    setDetectedPreference(preference);
+  };
 
   useEffect(() => {
     const fetchPersonalizationInfo = async () => {
@@ -43,6 +73,10 @@ const PersonalizationPage = () => {
         setAutoSuggest(data.autosuggest ?? true);
         setEmailNotifications(data.email_notifications ?? true);
         setAiDataRetention(data.ai_data_retention ?? true);
+        
+        // Detect preference from existing introduction
+        const existingPreference = parsePreference(data.introduction || '');
+        setDetectedPreference(existingPreference);
       } catch (error: any) {
         toast.error(error?.response?.data?.detail || ' Failed to load personalization info');
       }
@@ -60,6 +94,7 @@ const PersonalizationPage = () => {
     autosuggest?: boolean | null;
     email_notifications?: boolean | null;
     ai_data_retention?: boolean | null;
+    preference?: string | null;
   }) => {
     try {
       const response = await axiosInstance.post(`/personalization`, data);
@@ -73,6 +108,11 @@ const PersonalizationPage = () => {
       setAutoSuggest(updatedData.autosuggest ?? true);
       setEmailNotifications(updatedData.email_notifications ?? true);
       setAiDataRetention(updatedData.ai_data_retention ?? false);
+      
+      // Update detected preference if it exists in response
+      if (updatedData.preference) {
+        setDetectedPreference(updatedData.preference as 'visual' | 'text' | 'balanced');
+      }
 
       toast.success('Settings saved successfully!');
       return true;
@@ -90,7 +130,10 @@ const PersonalizationPage = () => {
 
   const handleSaveIntroduction = async () => {
     setLoadingIntroduction(true);
-    await updatePersonalization({ introduction });
+    await updatePersonalization({ 
+      introduction,
+      preference: detectedPreference 
+    });
     setEditIntroduction(false);
     setLoadingIntroduction(false);
   };
@@ -130,6 +173,7 @@ const PersonalizationPage = () => {
     setLoadingAll(true);
     await updatePersonalization({
       introduction: introduction,
+      preference: detectedPreference,
       location,
       language,
       preferred_response_language: responseLanguage,
@@ -183,10 +227,28 @@ const PersonalizationPage = () => {
               <textarea
                 value={introduction}
                 disabled={!editIntroduction}
-                onChange={(e) => setIntroduction(e.target.value)}
+                onChange={(e) => handleIntroductionChange(e.target.value)}
                 className={`block w-full h-[6.8rem] sm:px-5 sm:py-4 py-2 px-4 resize-none rounded-xl bg-[var(--primary-chart-bg)] border border-primary-100 shadow-sm placeholder-neutral-150 focus:outline-none focus:ring-2 focus:ring-[#4B9770] sm:sm:text-sm text-xs transitiona-ll duration-200`}
                 placeholder="Tell us about yourself..."
               />
+              
+              {/* Preference Indicator */}
+              {introduction && (
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Detected preference:</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    detectedPreference === 'visual' 
+                      ? 'bg-blue-100 text-blue-800' 
+                      : detectedPreference === 'text'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {detectedPreference === 'visual' && '👁️ Visual'}
+                    {detectedPreference === 'text' && '📝 Text'}
+                    {detectedPreference === 'balanced' && '⚖️ Balanced'}
+                  </span>
+                </div>
+              )}
 
               {editIntroduction ? (
                 <div className="flex justify-end gap-3 mt-4">

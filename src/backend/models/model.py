@@ -123,6 +123,7 @@ class PersonalizationRequest(BaseModel):
     autosuggest: Optional[bool] = None
     email_notifications: Optional[bool] = None
     ai_data_retention: Optional[bool] = None
+    preference: Optional[str] = None
 
 
 class returnStatus(BaseModel):
