@@ -49,7 +49,7 @@ services:
       interval: 5s
       timeout: 1s
       retries: 3
-    # REDIS_BROKER_URL="redis://:admin@redis:6379"
+    # ...existing code...
 
 volumes:
   mongodb_data: # Define the mongodb data volume

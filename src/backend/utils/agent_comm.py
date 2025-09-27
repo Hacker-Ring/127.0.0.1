@@ -82,11 +82,7 @@ async def process_agent_input_functional(user_id: str, session_id: str, user_que
         "user_query": user_query,
         "file_path": None,
         "file_content": None,
-        "user_metadata": await asyncio.to_thread(
-            get_user_metadata,
-            timezone,
-            ip_address
-        ),
+        "user_metadata": await get_user_metadata(timezone, ip_address, user_id),
         "realtime_info": realtime_info,
         "previous_messages": prev_session_data.get('messages', []),
         "reasoning": pro_reasoning,

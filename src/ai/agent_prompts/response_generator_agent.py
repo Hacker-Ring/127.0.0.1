@@ -1442,4 +1442,16 @@ Otherwise, proceed with normal formatting and analytics.
 - Never summarize or describe full finance_data unless user asked for detailed overview.
 </PRUNING-RULES>
 
+<USER-RESPONSE-PREFERENCE>
+Based on the user's response preference in the UserMetaData:
+
+- **"visual" preference**: Prioritize visual elements over text. Generate charts and graphs for all available numerical data. Minimize detailed text explanations and focus on visual storytelling. Use the `graph_generation_tool` extensively for any numerical data present.
+
+- **"text" preference**: Provide comprehensive text-based analysis with detailed explanations. Minimize or skip chart generation unless absolutely essential for understanding. Focus on narrative descriptions, detailed breakdowns, and textual insights.
+
+- **"balanced" preference** (default): Include both visual charts/graphs and detailed text analysis. Generate charts for key numerical data while providing thorough textual explanations and insights.
+
+Always respect the user's preference when deciding whether to generate charts or focus on text analysis. If charts cannot be generated due to lack of numerical data, provide appropriate text-based alternatives regardless of preference.
+</USER-RESPONSE-PREFERENCE>
+
 """

@@ -21,13 +21,38 @@ class ReportGenerationAgent(BaseAgent):
         self.tools = graph_tool_list
         self.system_prompt = SYSTEM_PROMPT
 
+    def _get_preference_instructions(self, preference: str) -> str:
+        """Generate preference-specific instructions for response formatting."""
+        base_instructions = " **Include relevant financial graphs by passing tables to the tool `graph_generation_tool` and include them properly as mentioned in Chart Generation and Visualization Guidelines. Ensure stock price charts are never included in the final response."
+        
+        if preference == "visual":
+            return base_instructions + " Prioritize visual elements (charts, graphs, tables) over text descriptions. Use charts and graphs as the primary means of conveying information, with minimal text explanations. Structure the response to lead with visualizations followed by brief supporting text.**"
+        elif preference == "text":
+            return base_instructions + " Prioritize detailed text descriptions over visual elements. Provide comprehensive written analysis with clear explanations, using charts only as supplementary illustrations when absolutely necessary. Focus on narrative explanations and detailed insights.**"
+        else:  # balanced or default
+            return base_instructions + " Provide a balanced mix of visual elements and detailed text analysis. Use charts and graphs to support key insights while providing comprehensive written explanations. Structure the response with both visual and textual elements working together.**"
+
     def format_input_prompt(self, state: Dict[str, Any]) -> str:
         # print("--- From inside format_input_prompt of ReportGenerationAgent ---") #
         # print(f"\n state inside report generation agent = {state}\n") #
 
         task = state['current_task']
         user_query = state.get('formatted_user_query', state['user_query'])
-        user_query = user_query + " **Include relevant financial graphs by passing tables to the tool `graph_generation_tool` and include them properly as mentioned in Chart Generation and Visualization Guidelines. Ensure stock price charts are never included in the final response. Provide a detailed, well-structured descriptive report with clear headings, subheadings, and a professional format, covering all relevant financial insights.**"
+        
+        # Extract user preference from metadata
+        user_metadata = state.get('user_metadata', '')
+        preference = "balanced"  # default
+        if "User's response preference:" in user_metadata:
+            # Extract preference from metadata string
+            try:
+                pref_line = [line for line in user_metadata.split('\n') if "User's response preference:" in line][0]
+                preference = pref_line.split(":")[1].strip()
+            except:
+                preference = "balanced"
+        
+        # Add preference-specific instructions
+        preference_instructions = self._get_preference_instructions(preference)
+        user_query = user_query + preference_instructions
 
         # input_prompt = f"### Latest User Query: {state['user_query']}\n"
         input_prompt = f"### Latest User Query: {user_query}\n\n"

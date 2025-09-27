@@ -7,7 +7,7 @@ from langchain_core.messages import AIMessage, ToolMessage, HumanMessage, AIMess
 import json
 import numpy as np
 import re
-from typing import List, Dict, Awaitable, Any
+from typing import List, Dict, Awaitable, Any, Optional
 import tldextract
 import uuid
 import os
@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 from src.ai.llm.model import get_llm
 from src.ai.llm.config import CountUsageMetricsPricingConfig
+from src.backend.models.model import Personalization
 
 cmp = CountUsageMetricsPricingConfig()
 
@@ -95,13 +96,24 @@ def is_private_ip(ip: str) -> bool:
 #         return {}
 
 
-def get_user_metadata(timezone: str, ip_address: str = None):
+async def get_user_metadata(timezone: str, ip_address: Optional[str] = None, user_id: Optional[str] = None):
     date_time = get_date_time(timezone)
 
     location_data = {"location": timezone}
+    
+    # Fetch user preferences if user_id is provided
+    preference = "balanced"  # default
+    if user_id:
+        try:
+            personalization = await mongodb.get_personalization(user_id)
+            if personalization and 'preference' in personalization:
+                preference = personalization['preference']
+        except Exception as e:
+            print(f"Error fetching user personalization: {e}")
+            preference = "balanced"  # fallback to default
 
     location_data_str = json.dumps(location_data)
-    return f"<UserMetaData>\n- User's current Datetime:{date_time.isoformat()}\n - User's current location details: {location_data_str}\n</UserMetaData>"
+    return f"<UserMetaData>\n- User's current Datetime:{date_time.isoformat()}\n - User's current location details: {location_data_str}\n - User's response preference: {preference}\n</UserMetaData>"
 
 
 def get_date_time(timezone: str = "UTC"):

@@ -214,6 +214,9 @@ def fetch_financial_data(symbol: str, statement_type: str, period: str = "annual
             "period": period
         })
 
+    if not record:
+        raise Exception(f"No financial data found for {symbol}")
+    
     return record["data"]
 
 def get_historical_data_fmp(ticker: str, period: str):
@@ -891,8 +894,8 @@ async def update_session_history_in_db(session_id: str, user_id: str, message_id
             session_id=session_id,
             title="New Chat",
             history=[message_entry],
-            created_at=local_time,
-            updated_at=local_time,
+            created_at=local_time or datetime.now(timezone.utc),
+            updated_at=local_time or datetime.now(timezone.utc),
         )
 
         title = await generate_title(session.history)
@@ -924,7 +927,7 @@ async def update_session_history_in_db(session_id: str, user_id: str, message_id
         await session.save()
 
 
-async def get_session_history_from_db(session_id: str, prev_message_id: str, limit: int = None) -> dict:
+async def get_session_history_from_db(session_id: str, prev_message_id: str, limit: Optional[int] = None) -> dict:
     session = await SessionHistory.find_one(SessionHistory.session_id == session_id)
     all_messages = []
     all_doc_ids = []
@@ -1016,7 +1019,7 @@ async def update_user_profile(user_id: str, full_name: Optional[str], email: Opt
     return user
 
 
-async def get_personalization(user_id: str) -> Optional[Personalization]:
+async def get_personalization(user_id: str) -> Optional[dict]:
     try:
         perInfo = await Personalization.find_one(Personalization.user_id == PydanticObjectId(user_id))
         if perInfo :
@@ -1026,7 +1029,7 @@ async def get_personalization(user_id: str) -> Optional[Personalization]:
         print(f"Error in get_personalization: {e}")
         return None
 
-async def create_or_update_personalization(user_id: str, data: dict) -> Personalization:
+async def create_or_update_personalization(user_id: str, data: dict) -> dict:
     try:
         personalization = await Personalization.find_one(Personalization.user_id == PydanticObjectId(user_id))
         if personalization:
@@ -1410,7 +1413,7 @@ async def get_last_msg_in_session(session_id: str):
         sort=[("created_at", -1)]
         ).first_or_none()
 
-async def store_user_query(user_id: str, session_id: str, message_id: str, user_query: str, timezone: str, doc_ids: List[str]=None):
+async def store_user_query(user_id: str, session_id: str, message_id: str, user_query: str, timezone: str, doc_ids: Optional[List[str]]=None):
     from src.backend.utils.utils import get_unique_response_id
     local_time = datetime.now(ZoneInfo(timezone))
 
